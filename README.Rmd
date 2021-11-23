@@ -1,0 +1,46 @@
+---
+title: "calanusthreshold"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Provides R tools for producing threshold prey models for Calanus.
+
+## Requirements
+
+ + [R v4.1+](https://www.r-project.org/)
+ 
+ + [biomod2](https://CRAN.R-project.org/package=biomod2)
+
+ + [rlang](https://CRAN.R-project.org/package=rlang)
+ 
+ + [dplyr](https://CRAN.R-project.org/package=dplyr)
+ 
+ + [readr](https://CRAN.R-project.org/package=readr)
+ 
+ + [sf](https://CRAN.R-project.org/package=sf)
+
+## Installation
+
+```
+remotes::install_github("BigelowLab/calanusthreshold")
+```
+
+## Read Input Data
+
+We provide an anonymized example dataset.
+
+```{r read_example, message = FALSE}
+library(calanusthreshold)
+x <- read_input()
+x
+```
+
+But if you have your own dataset, just provide the filename and path.
+
+```
+x <- read_input("/path/to/input/data.csv")
+```
