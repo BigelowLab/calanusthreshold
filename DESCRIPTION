@@ -1,0 +1,18 @@
+Package: calanusthreshold
+Title: calanusthreshold
+Description: Provides tools for producing threshold prey models for Calanus.
+Version: 0.1
+Depends:
+    R (>= 4.0)
+Imports:
+    rlang,
+    dplyr,
+    readr,
+    sf,
+    biomod2
+URL: https://github.com/BigelowLab/calanusthreshold
+Maintainer: Ben Tupper <btupper@bigelow.org>
+Author: Camille Ross [aut, cre], Nick Record [aut], Ben Tupper [aut]
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.1.2
