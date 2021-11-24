@@ -35,12 +35,12 @@ We provide an anonymized example dataset.
 
 ```{r read_example, message = FALSE}
 library(calanusthreshold)
-x <- read_input()
+x <- read_dataset()
 x
 ```
 
 But if you have your own dataset, just provide the filename and path.
 
 ```
-x <- read_input("/path/to/input/data.csv")
+x <- read_dataset("/path/to/input/data.csv")
 ```
