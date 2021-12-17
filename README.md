@@ -34,21 +34,21 @@ x
     ## Simple feature collection with 500 features and 31 fields
     ## Geometry type: POINT
     ## Dimension:     XY
-    ## Bounding box:  xmin: -70.85388 ymin: 40.54264 xmax: -55.5305 ymax: 51.67751
+    ## Bounding box:  xmin: -70.99562 ymin: 40.9032 xmax: -55.91088 ymax: 51.44948
     ## Geodetic CRS:  WGS 84
     ## # A tibble: 500 × 32
     ##    station  year month longitude latitude `Calanus finmarchi… `Calanus finmarch…
     ##  * <chr>   <dbl> <dbl>     <dbl>    <dbl>               <dbl>              <dbl>
-    ##  1 A-01    2019.  4.01     -60.2     45.2                  0              33823.
-    ##  2 B-01    2014.  6.44     -67.6     47.8              13684.              6461.
-    ##  3 C-01    2018.  9.85     -68.1     41.2               6675.              5116.
-    ##  4 D-01    2020  10.2      -70.1     50.0                  0                  0 
-    ##  5 E-01    2020  10.6      -59.2     45.8              31330.                 0 
-    ##  6 F-01    2008.  2.51     -64.7     47.0               6878.              7678.
-    ##  7 A-01    2010.  1.89     -62.4     44.9              19216.              9855.
-    ##  8 A-01    2014.  4.89     -64.0     44.0               2474.                 0 
-    ##  9 G-01    2006.  4.37     -58.7     50.5               4054.             12186.
-    ## 10 H-01    2020   5.59     -68.1     44.7              12990.              3908.
+    ##  1 A-01     2007     8     -58.0     49.8                  0               5294.
+    ##  2 B-01     2010     8     -61.9     46.8              14858.              4134.
+    ##  3 C-01     2018     8     -58.7     45.4                429.               909.
+    ##  4 D-01     2004     5     -58.4     48.5                  0                  0 
+    ##  5 E-01     2015     9     -65.4     43.6                  0                  0 
+    ##  6 F-01     2002     6     -59.8     47.7                  0               4927.
+    ##  7 G-01     2007     2     -63.1     49.0              15624.              4028.
+    ##  8 H-01     2015     4     -65.1     46.8              14283.                 0 
+    ##  9 I-01     2009    11     -62.1     45.3                  0               4125.
+    ## 10 C-01     2013    10     -59.8     45.3                  0                  0 
     ## # … with 490 more rows, and 25 more variables: Calanus finmarchicus VI <dbl>,
     ## #   Calanus hyperboreus IV <dbl>, Calanus hyperboreus V <dbl>,
     ## #   Calanus hyperboreus VI <dbl>, Calanus glacialis IV <dbl>,
