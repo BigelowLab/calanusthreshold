@@ -11,7 +11,7 @@ read_dataset <- function(filename = system.file("exdata/example_input.csv.gz",
                        form = c("tibble", "sf")[2],
                        crs = 4326){
   if (FALSE){
-    filename = "/mnt/ecocast/projects/calanus/calanus-threshold/GSTS_Calanus_consolidated.csv"
+    filename = "/mnt/ecocast/projects/calanus/calanus-threshold/data/GSTS_Calanus_consolidated.csv"
   }
   x <- suppressMessages(readr::read_csv(filename))
   if (tolower(form[1]) == 'sf')  x <- sf::st_as_sf(x, wkt = "geometry", crs = crs)
@@ -64,7 +64,14 @@ subsample_dataset <- function(x,
         if (nm == "longitude"){
           r <- c(-180, 180)
         }
-        x[[nm]] <- trunc_range(jitter(x[[nm]], amount = amount), r[1], r[2])
+        
+        if (nm %in% c("year", "month")){
+          n <- nrow(x)
+          ix <- sample(seq_len(n), n, replace = FALSE)
+          x[[nm]] <- x[[nm]][ix]
+        } else {
+          x[[nm]] <- trunc_range(jitter(x[[nm]], amount = amount), r[1], r[2])
+        }      
       }
     }
     xy <- as.matrix(x |> sf::st_drop_geometry() |> dplyr::select("longitude", "latitude"))
