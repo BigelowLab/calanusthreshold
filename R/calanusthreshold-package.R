@@ -5,4 +5,5 @@
 #' @name calanusthreshold-package
 #' @aliases calanus
 #' @importFrom rlang := !! .data
+#' @importFrom stats complete.cases
 NULL

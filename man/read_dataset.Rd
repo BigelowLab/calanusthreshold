@@ -6,14 +6,14 @@
 \usage{
 read_dataset(
   filename = system.file("exdata/example_input.csv.gz", package = "calanusthreshold"),
-  form = c("tibble", "sf")[2],
+  form = c("tibble", "sf")[1],
   crs = 4326
 )
 }
 \arguments{
 \item{filename}{character, the file to read. The default is to read a dummy example data file.}
 
-\item{form}{character, either 'tibble' or 'sf' (default, simple feature)}
+\item{form}{character, either 'tibble' (default) or 'sf'}
 
 \item{crs}{character or numeric, if \code{form} is 'sf' then pass this to
 \code{\link[sf]{st_as_sf}}}

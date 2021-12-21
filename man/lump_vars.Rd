@@ -2,7 +2,7 @@
 % Please edit documentation in R/misc.R
 \name{lump_vars}
 \alias{lump_vars}
-\title{Lump variables in a table together}
+\title{Lump variables in a table together by summing}
 \usage{
 lump_vars(
   x = read_dataset(),
@@ -10,6 +10,7 @@ lump_vars(
     "Calanus finmarchicus VI", "Calanus hyperboreus IV", "Calanus hyperboreus V",
     "Calanus hyperboreus VI", "Calanus glacialis IV", "Calanus glacialis V",
     "Calanus glacialis VI"),
+  selector = dplyr::all_of,
   newname = "lumped",
   na.rm = TRUE,
   drop = TRUE
@@ -19,6 +20,9 @@ lump_vars(
 \item{x}{tibble}
 
 \item{vars}{character, one or more variables to lump}
+
+\item{selector}{function the function used to select the variables,
+see \code{tidyselect} helpers.}
 
 \item{newname}{character, the name of the new (lumped) columns}
 
@@ -30,5 +34,5 @@ lump_vars(
 tibble
 }
 \description{
-Lump variables in a table together
+Lump variables in a table together by summing
 }

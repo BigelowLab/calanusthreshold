@@ -1,0 +1,142 @@
+---
+title: "tidymodels"
+output: html_notebook
+---
+
+Learning to navigate [tidymodels](https://www.tidymodels.org/) through a [nice easy walk through](https://rviews.rstudio.com/2019/06/19/a-gentle-intro-to-tidymodels/) using the example dataset.
+
+We define a grazeable patch where abundance is >= 10000, but for the purpose of clarity extra patch definitions can be defined - here we select `2500, 5000, 7500, 10000` as patch levels.  Ultimately, the models need these defined as factors (a labeled dataset) which we do by enumerating as '0', '1', '2', ..., `n-1`. 
+
+
+```{r}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(calanusthreshold)
+  library(tidymodels)
+})
+
+#THRESHOLD<- c(2500, 5000, 7500, 10000)
+THRESHOLD <- 10000
+```
+
+
+We load the example dataset, remove variables we don't need, drop incomplete rows, aggregate the species of interest as a new var called `patch`, and record `patch` into levels. Note that we drop sea ice (thickness and concentration) because they are missing in 93% of the original dataset. We also drop `month` to skip around wrapping issues.
+
+```{r}
+x <- calanusthreshold::read_dataset(form = 'tibble') |>
+  dplyr::select(-dplyr::starts_with(c("Calanus glacialis", 
+                                      "Calanus hyperboreus",
+                                      "geom",
+                                      "longitude",
+                                      "latitude",
+                                      "station",
+                                      "year",
+                                      "siconc",
+                                      "sithick",
+                                      "month"))) |>
+  calanusthreshold::lump_vars(vars = c("Calanus finmarchicus"),
+            selector = dplyr::starts_with,
+            newname = "patch") |>
+  dplyr::mutate(patch = calanusthreshold::as_patch(patch, THRESHOLD))
+```
+
+
+Divide into test/train datasets (essential a list with two tibbles)
+
+```{r}
+x_split <- rsample::initial_split(x, prop = 0.6)
+```
+
+Prep the data.  Notes are from help for each function - there are quite a few different `step_*` functions.
+
+  + `step_corr` creates a specification of a recipe step that will potentially remove variables that have large absolute correlations with other variables.
+  
+  + `step_center` creates a specification of a recipe step that will normalize numeric data to have a mean of zero.
+  
+  + `step_scale` creates a specification of a recipe step that will normalize numeric data to have a standard deviation of one.
+
+```{r}
+x_recipe <- rsample::training(x_split) |>
+  recipes::recipe(patch ~.) |>
+  recipes::step_corr(recipes::all_predictors()) |>
+  recipes::step_center(recipes::all_predictors(), -recipes::all_outcomes()) |>
+  recipes::step_scale(recipes::all_predictors(), -recipes::all_outcomes()) |>
+  recipes::prep()
+```
+
+Apply the recipe! See `?recipes::bake`
+
+> For a recipe with at least one preprocessing operation that has been trained by prep.recipe(), apply the computations to new data.
+
+The outputs are tibbles with data transformed by 
+```{r}
+x_testing <- x_recipe |>
+  recipes::bake(rsample::testing(x_split)) 
+
+x_training <- x_recipe |>
+  recipes::bake(rsample::training(x_split))
+```
+
+Now we make models - using two different random forest models.  This is where `tidymodels` has put in a lot of work to provide one consistent interface to the myriad random forest implementations available.  The two examples are from [ranger](https://CRAN.R-project.org/package=ranger) and [randomForest](https://CRAN.R-project.org/package=randomForest).  (Do you get the `ranger` pun?  Forest Ranger? Get it?)
+
+```{r}
+x_ranger <- parsnip::rand_forest(trees = 100, mode = "classification") |>
+  parsnip::set_engine("ranger") |>
+  parsnip::fit(patch ~ ., data = x_training)
+x_ranger
+```
+
+```{r}
+x_rf <-  parsnip::rand_forest(trees = 100, mode = "classification") |>
+  parsnip::set_engine("randomForest") |>
+  parsnip::fit(patch ~ ., data = x_training)
+x_rf
+```
+
+```{r}
+x_ranger |>
+  predict(x_testing) |>
+  bind_cols(x_testing) |>
+  glimpse()
+
+
+x_ranger |>
+  predict(x_testing) |>
+  bind_cols(x_testing) |>
+  metrics(truth = patch, estimate = .pred_class)
+
+
+x_rf |>
+  predict(x_testing) |>
+  bind_cols(x_testing) |>
+  metrics(truth = patch, estimate = .pred_class)
+
+x_ranger |>
+  predict(x_testing, type = "prob") |>
+  glimpse()
+
+
+x_probs <- x_ranger |>
+  predict(x_testing, type = "prob") |>
+  bind_cols(x_testing)
+
+
+xc <- x_probs |>
+  gain_curve(patch, .pred_1) |>
+  glimpse()
+
+```
+
+```{r}
+x_probs |>
+  gain_curve(patch, .pred_1) |>
+  autoplot(ggplot2::coord_fixed(ratio = 1)) |>
+  print()
+```
+
+```{r}
+x_probs |>
+  roc_curve(patch, .pred_1) |>
+  autoplot() |>
+  print()
+```

@@ -5,11 +5,11 @@ Version: 0.1
 Depends:
     R (>= 4.0)
 Imports:
+    stats,
     rlang,
     dplyr,
     readr,
-    sf,
-    biomod2
+    sf
 URL: https://github.com/BigelowLab/calanusthreshold
 Maintainer: Ben Tupper <btupper@bigelow.org>
 Author: Camille Ross [aut, cre], Nick Record [aut], Ben Tupper [aut]

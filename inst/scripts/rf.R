@@ -1,5 +1,5 @@
 library(calanusthreshold)
-library(biomod2)
+#library(biomod2)
 
 x <- calanusthreshold::read_dataset(form = 'sf') %>%
   lump_vars(newname = "abund")
