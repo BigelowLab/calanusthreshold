@@ -1,3 +1,45 @@
+#' Prep a dataset by removing variables, remove incolplete cases,
+#'  aggregating specified columns, and applying labeling to the aggregate column
+#'  
+#' @export
+#' @param x tibble of input data
+#' @param drop_var character, the variables to deselect
+#' @param drop_fun function, such as \code{\link[dplyr]{starts_with}}
+#' @param complete_cases_only logical, if TRUE drop incomplete records (after deselection)
+#' @param lump_var character character, vector of variables to sum into a new column
+#' @param lump_fun function, such as \code{\link[dplyr]{starts_with}}
+#' @param newname character the name of the new aggregated colum
+#' @param threshold numeric, the threshold(s) used to define patches
+#' @return a tibble
+prep_dataset <- function(x = read_dataset(form = 'tibble'),
+                         drop_var = c("Calanus glacialis", 
+                                       "Calanus hyperboreus",
+                                       "geom",
+                                       "longitude",
+                                       "latitude",
+                                       "station",
+                                       "year",
+                                       "siconc",
+                                       "sithick",
+                                       "month"),
+                         drop_fun = dplyr::starts_with,
+                         complete_cases_only = TRUE,
+                         lump_var = "Calanus finmarchicus",
+                         lump_fun = dplyr::starts_with,
+                         newname = "patch",
+                         threshold = 10000){
+  x <- x |>
+    dplyr::select(-drop_fun(drop_var)) 
+  if(complete_cases_only) x <- na.omit(x)
+
+  x <- calanusthreshold::lump_vars(x, 
+                                  vars = lump_var,
+                                  selector = lump_fun,
+                                  newname = newname)
+  x[[newname]] <- calanusthreshold::as_patch(x[[newname]], threshold) 
+  x
+}
+
 #' Lump variables in a table together by summing
 #' 
 #' @export
@@ -59,10 +101,10 @@ lump_vars <- function(x = read_dataset(),
 as_patch <- function(x, 
                      threshold = list(10000, c(2500, 5000, 7500, 10000))[[1]],
                      form = c("index", "factor")[2]){
-  if (threshold[1] > 0) threshold = c(0, threshold)
-  ix <- findInterval(x, threshold) - 1
+
+  ix <- findInterval(x, threshold)
   if (tolower(form[1]) == "factor") {
-    ix <- factor(ix, levels = seq(from = 0L, by = 1L, length = length(threshold)))
+    ix <- factor(ix, levels = seq(from = 0L, by = 1L, length = length(threshold)+1))
   }
   ix
 }
