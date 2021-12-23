@@ -8,34 +8,42 @@
 #' @param complete_cases_only logical, if TRUE drop incomplete records (after deselection)
 #' @param lump_var character character, vector of variables to sum into a new column
 #' @param lump_fun function, such as \code{\link[dplyr]{starts_with}}
+#' @param log_var character, variables to log scale (base 10), match with \code{\link[dplyr]{any_of}}
 #' @param newname character the name of the new aggregated colum
 #' @param threshold numeric, the threshold(s) used to define patches
 #' @return a tibble
-prep_dataset <- function(x = read_dataset(form = 'tibble'),
+prep_dataset <- function(x = read_dataset(),
                          drop_var = c("Calanus glacialis", 
                                        "Calanus hyperboreus",
-                                       "geom",
+                                       "geometry",
                                        "longitude",
                                        "latitude",
                                        "station",
                                        "year",
                                        "siconc",
-                                       "sithick",
-                                       "month"),
+                                       "sithick"),
                          drop_fun = dplyr::starts_with,
                          complete_cases_only = TRUE,
                          lump_var = "Calanus finmarchicus",
                          lump_fun = dplyr::starts_with,
+                         log_var = c("bathymetry", "chlor_a"),
                          newname = "patch",
                          threshold = 10000){
-  x <- x |>
-    dplyr::select(-drop_fun(drop_var)) 
+
+  if (length(drop_var) > 0) x <- dplyr::select(x, -drop_fun(drop_var)) 
+  
   if(complete_cases_only) x <- na.omit(x)
 
+  
+  if (length(log_var) > 0) {
+    x <- dplyr::mutate(x, dplyr::across(dplyr::any_of(log_var),  ~ log10(abs(.x) + 0.00001) ))
+  }
   x <- calanusthreshold::lump_vars(x, 
                                   vars = lump_var,
                                   selector = lump_fun,
                                   newname = newname)
+
+    
   x[[newname]] <- calanusthreshold::as_patch(x[[newname]], threshold) 
   x
 }
@@ -107,89 +115,4 @@ as_patch <- function(x,
     ix <- factor(ix, levels = seq(from = 0L, by = 1L, length = length(threshold)+1))
   }
   ix
-}
-
-
-#' Given a dataset, create a subsample and possibly anonymize ID and location
-#'
-#' @export
-#' @param x sf or tibble input dataset
-#' @param n the number of subsamples, or NA to use all
-#' @param anonymize logical, if TRUE anonymize the data
-#' @param complete_cases_only logical, if TRUE 
-#' @param skip_for_complete character or NULL, if present then drop these columns before
-#'   determing complete cases.  Note that these variables are still included in the 
-#'   output.
-#' @param noise numeric, fraction of noise to add to each numeric variable (column)
-#' @return sf or tibble subset, possibly anonymized
-subsample_dataset <- function(x,
-                              n = c(NA, 500)[2],
-                              anonymize = TRUE,
-                              complete_cases_only = TRUE,
-                              skip_for_complete = c("siconc", "sithick"),
-                              noise = 0.2){
-  if (inherits(x, 'sf')){
-    isSF <- TRUE
-    crs <- sf::st_crs(x)
-    x <- sf::st_drop_geometry(x)
-  } else {
-    isSF <- FALSE
-  }
-  
-  if (complete_cases_only){
-    if (length(skip_for_complete) > 0) {
-      ix <- dplyr::select(x, -dplyr::all_of(skip_for_complete)) |>
-        complete.cases()
-    } else {
-      ix <- complete.cases(x)
-    }
-    x <- dplyr::filter(x, ix)
-  }
-  
-  if (!is.na(n[1])) x <- dplyr::slice_sample(x, n = n[1])
-  if (anonymize){
-    id <- unique(x$station)
-    uid <- as.vector(outer(LETTERS, sprintf("%.02i", seq_along(LETTERS)), paste, sep = "-"))[seq_along(id)] |>
-      rlang::set_names(id)
-    x <- x |> dplyr::mutate(station = uid[.data$station])
-    
-    klass <- sapply(x, function(x) paste(class(x), collapse = ","))
-    N <- nrow(x)
-    
-    # given a vector and min/max values truncate the vector such that mn <= x <= mx
-    trunc_range <- function(x, mn, mx){
-      x[x < mn] <- mn
-      x[x > mx] <- mx
-      x
-    }
-    for (nm in names(klass)){
-      if (klass[[nm]] == "numeric"){
-        r <- range(x[[nm]], na.rm = TRUE)
-        amount <- noise * (r[2] - r[1])
-        # we allow lon/lat to range more freely
-        if (nm == "latitude"){
-          r <- c(-90, 90)
-        }
-        if (nm == "longitude"){
-          r <- c(-180, 180)
-        }
-        
-        if (nm %in% c("year", "month")){
-          n <- nrow(x)
-          ix <- sample(seq_len(n), n, replace = FALSE)
-          x[[nm]] <- x[[nm]][ix]
-        } else {
-          x[[nm]] <- trunc_range(jitter(x[[nm]], amount = amount), r[1], r[2])
-        }      
-      }
-    }
-  } # anonymize
-  if (isSF){
-    xy <- as.matrix(x |> dplyr::select("longitude", "latitude"))
-    sfc <- lapply(seq_len(nrow(xy)),
-                  function(i) sf::st_point(xy[i,])) |>
-      sf::st_sfc(crs = crs)
-    x <- sf::st_set_geometry(x, sfc)
-  }
-  x
 }

@@ -5,18 +5,17 @@
 \title{Read an input file source}
 \usage{
 read_dataset(
-  filename = system.file("exdata/example_input.csv.gz", package = "calanusthreshold"),
-  form = c("tibble", "sf")[1],
-  crs = 4326
+  filename = system.file("exdata/fake_data.csv.gz", package = "calanusthreshold"),
+  drop_vars = c("station", "latitude", "longitude", "siconc", "sithick", "geometry"),
+  na.rm = TRUE
 )
 }
 \arguments{
 \item{filename}{character, the file to read. The default is to read a dummy example data file.}
 
-\item{form}{character, either 'tibble' (default) or 'sf'}
+\item{drop_vars}{character or NULL, variables (columns) to drop from input}
 
-\item{crs}{character or numeric, if \code{form} is 'sf' then pass this to
-\code{\link[sf]{st_as_sf}}}
+\item{na.rm}{logical, if TRUE drop any cases (rows) with one or more missing values}
 }
 \value{
 tibble or simple feature

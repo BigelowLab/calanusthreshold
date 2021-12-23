@@ -5,7 +5,7 @@ output: html_notebook
 
 Learning to navigate [tidymodels](https://www.tidymodels.org/) through a [nice easy walk through](https://rviews.rstudio.com/2019/06/19/a-gentle-intro-to-tidymodels/) using the example dataset.
 
-We define a grazeable patch where abundance is >= 10000, but for the purpose of clarity extra patch definitions can be defined - here we select `2500, 5000, 7500, 10000` as patch levels.  Ultimately, the models need these defined as factors (a labeled dataset) which we do by enumerating as '0', '1', '2', ..., `n-1`. 
+We define a grazeable patch where abundance is >= 10000. 
 
 
 ```{r}
@@ -15,29 +15,28 @@ suppressPackageStartupMessages({
   library(tidymodels)
 })
 
-#THRESHOLD<- c(2500, 5000, 7500, 10000)
 THRESHOLD <- 10000
 ```
 
 
-We load the example dataset, remove variables we don't need, drop incomplete rows, aggregate the species of interest as a new var called `patch`, and record `patch` into levels. Note that we drop sea ice (thickness and concentration) because they are missing in 93% of the original dataset. We also drop `month` to skip around wrapping issues.
+We load the example dataset, remove variables we don't need, drop incomplete rows, aggregate the species of interest as a new var called `patch`, and record `patch` into levels. Note that we drop sea ice (thickness and concentration) because they are missing in 93% of the original dataset. 
 
 ```{r}
-x <- calanusthreshold::read_dataset(form = 'tibble') |>
-  dplyr::select(-dplyr::starts_with(c("Calanus glacialis", 
-                                      "Calanus hyperboreus",
-                                      "geom",
-                                      "longitude",
-                                      "latitude",
-                                      "station",
-                                      "year",
-                                      "siconc",
-                                      "sithick",
-                                      "month"))) |>
-  calanusthreshold::lump_vars(vars = c("Calanus finmarchicus"),
-            selector = dplyr::starts_with,
-            newname = "patch") |>
-  dplyr::mutate(patch = calanusthreshold::as_patch(patch, THRESHOLD))
+x <- calanusthreshold::read_dataset() |>
+  calanusthreshold::prep_dataset(drop_var = c("Calanus glacialis", 
+                                       "Calanus hyperboreus",
+                                       "geometry",
+                                       "longitude",
+                                       "latitude",
+                                       "station",
+                                       "year",
+                                       "siconc",
+                                       "sithick"),
+                                 lump_var = "Calanus finmarchicus",
+                                 log_var = c("bathymetry", "chlor_a"),
+                                 newname = "patch",
+                                 threshold = THRESHOLD) |>
+  dplyr::glimpse()
 ```
 
 
@@ -77,66 +76,67 @@ x_training <- x_recipe |>
   recipes::bake(rsample::training(x_split))
 ```
 
-Now we make models - using two different random forest models.  This is where `tidymodels` has put in a lot of work to provide one consistent interface to the myriad random forest implementations available.  The two examples are from [ranger](https://CRAN.R-project.org/package=ranger) and [randomForest](https://CRAN.R-project.org/package=randomForest).  (Do you get the `ranger` pun?  Forest Ranger? Get it?)
+Now we make a model - choosing the engine to create the random forest model. This is where tidymodels has put in a lot of work to provide one consistent interface to the myriad random forest implementations available. I am chosing ranger which is also the default.
 
 ```{r}
-x_ranger <- parsnip::rand_forest(trees = 100, mode = "classification") |>
+x_model <- parsnip::rand_forest(trees = 100, mode = "classification") |>
   parsnip::set_engine("ranger") |>
   parsnip::fit(patch ~ ., data = x_training)
-x_ranger
+x_model
 ```
 
-```{r}
-x_rf <-  parsnip::rand_forest(trees = 100, mode = "classification") |>
-  parsnip::set_engine("randomForest") |>
-  parsnip::fit(patch ~ ., data = x_training)
-x_rf
+The model can be saved to disk and restored later.
+
+```
+save_model(x_model, filename = "my_model.Rdata", overwrite = TRUE)
+y_model <- read_model(filename = "my_model.Rdata")
 ```
 
+Now we can use the model to predict our testing data, and then comapre the predictions to "truth" which we store in variable "patch".  Below we make the prediction, which is stored a `.pred_class`, bind with the test data table and move the `patch` column to the first position for clarity.
+
 ```{r}
-x_ranger |>
-  predict(x_testing) |>
-  bind_cols(x_testing) |>
+x_pred <-  predict(x_model, x_testing) |>
+  dplyr::bind_cols(x_testing) |>
+  dplyr::relocate(patch, .before = 1)
+dplyr::glimpse(x_pred)
+```
+
+
+We can compute basic test metrics:
+
+ + accuracy - the proportion of the data that are predicted correctly,
+ 
+ + kappa statistic - similar measure to `accuracy`, but normalized by the accuracy that would be expected by chance alone.
+
+```{r}
+x_pred |>
+  yardstick::metrics(truth = patch, estimate = .pred_class)
+```
+
+Next we can recompute the prediction but include probabilities. 
+```{r}
+x_prob <-  predict(x_model, x_testing, type = "prob") |>
+  dplyr::bind_cols(x_testing) |>
+  dplyr::relocate(patch, .before = 1)
+glimpse(x_prob)
+```
+
+
+Finally, we can compute the AUC from the receiver-operator curve.  Note that our `patch` variable is out `truth`, and the probabilities to examine are `.pred_1` (as opposed to `.pred_0`). In the absence of any other information, `roc_auc` has no way to determine if `.pred_1` predicts the first of second factor of `patch`.  (Recall that we have only two classes: no-patch (=0) and patch (=1).  By default is assumes the first factor is the 'event' we are trying to process which is not correct.  So, to correct this wew explicitly state the event of interest is the second.
+
+
+```{r}
+x_auc <- yardstick::roc_auc(x_prob, patch, .pred_1, event_level = 'second') |>
   glimpse()
-
-
-x_ranger |>
-  predict(x_testing) |>
-  bind_cols(x_testing) |>
-  metrics(truth = patch, estimate = .pred_class)
-
-
-x_rf |>
-  predict(x_testing) |>
-  bind_cols(x_testing) |>
-  metrics(truth = patch, estimate = .pred_class)
-
-x_ranger |>
-  predict(x_testing, type = "prob") |>
-  glimpse()
-
-
-x_probs <- x_ranger |>
-  predict(x_testing, type = "prob") |>
-  bind_cols(x_testing)
-
-
-xc <- x_probs |>
-  gain_curve(patch, .pred_1) |>
-  glimpse()
-
 ```
 
-```{r}
-x_probs |>
-  gain_curve(patch, .pred_1) |>
-  autoplot(ggplot2::coord_fixed(ratio = 1)) |>
-  print()
-```
+And now plot...
 
 ```{r}
-x_probs |>
-  roc_curve(patch, .pred_1) |>
-  autoplot() |>
-  print()
+x_roc <- yardstick::roc_curve(x_prob, truth = patch, .pred_1, event_level = "second")
+print(autoplot(x_roc) + 
+  ggplot2::labs(title = "ROC-AUC") + 
+  ggplot2::annotate("text", x = 0, y = 1, hjust = 0,
+                    label = sprintf("AUC: %0.3f", x_auc$.estimate[1])))
+
 ```

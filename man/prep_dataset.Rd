@@ -6,13 +6,14 @@
  aggregating specified columns, and applying labeling to the aggregate column}
 \usage{
 prep_dataset(
-  x = read_dataset(form = "tibble"),
-  drop_var = c("Calanus glacialis", "Calanus hyperboreus", "geom", "longitude",
-    "latitude", "station", "year", "siconc", "sithick", "month"),
+  x = read_dataset(),
+  drop_var = c("Calanus glacialis", "Calanus hyperboreus", "geometry", "longitude",
+    "latitude", "station", "year", "siconc", "sithick"),
   drop_fun = dplyr::starts_with,
   complete_cases_only = TRUE,
   lump_var = "Calanus finmarchicus",
   lump_fun = dplyr::starts_with,
+  log_var = c("bathymetry", "chlor_a"),
   newname = "patch",
   threshold = 10000
 )
@@ -29,6 +30,8 @@ prep_dataset(
 \item{lump_var}{character character, vector of variables to sum into a new column}
 
 \item{lump_fun}{function, such as \code{\link[dplyr]{starts_with}}}
+
+\item{log_var}{character, variables to log scale (base 10), match with \code{\link[dplyr]{any_of}}}
 
 \item{newname}{character the name of the new aggregated colum}
 

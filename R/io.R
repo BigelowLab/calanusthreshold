@@ -2,47 +2,49 @@
 #'
 #' @export
 #' @param filename character, the file to read. The default is to read a dummy example data file.
-#' @param form character, either 'tibble' (default) or 'sf'
-#' @param crs character or numeric, if \code{form} is 'sf' then pass this to
-#'   \code{\link[sf]{st_as_sf}}
+#' @param drop_vars character or NULL, variables (columns) to drop from input
+#' @param na.rm logical, if TRUE drop any cases (rows) with one or more missing values
 #' @return tibble or simple feature
-read_dataset <- function(filename = system.file("exdata/example_input.csv.gz",
+read_dataset <- function(filename = system.file("exdata/fake_data.csv.gz",
                                               package = "calanusthreshold"),
-                       form = c("tibble", "sf")[1],
-                       crs = 4326){
-  if (FALSE){
-    filename = "/mnt/ecocast/projects/calanus/calanus-threshold/data/GSTS_Calanus_consolidated.csv"
-  }
-  x <- suppressMessages(readr::read_csv(filename))
-  if (tolower(form[1]) == 'sf') {
-    x <- sf::st_as_sf(x, wkt = "geometry", crs = crs) 
-  } else {
-    x <- dplyr::select(x, -dplyr::any_of("geometry"))
-  }
+                         drop_vars = c("station", 
+                                  "latitude",
+                                  "longitude", 
+                                  "siconc",
+                                  "sithick",
+                                  "geometry"),
+                         na.rm = TRUE){
+
+  x <- readr::read_csv(filename, show_col_types = FALSE)
+  if (length(drop_vars > 0))x <- dplyr::select(x, -dplyr::any_of(drop_vars))
+  if (na.rm)  x <- tidyr::drop_na(x)
   x
 }
 
-#' Write a dataset
-#'
-#' @param x sf or tibble input-style dataset
-#' @param filename character, the file to write to
-#' @return the provided sf or tibble
-write_dataset <- function(x, filename = "dataset.csv.gz"){
-  if (!inherits(x, 'sf')){
-    isTibble <- TRUE
-    x <- sf::st_as_sf(x, wkt = "geometry", crs = 4326)
-  } else {
-    isTibble <- FALSE
+#' Save a model to a file
+#' 
+#' @export
+#' @param x model structure
+#' @param filename character, the name of the file to save.
+#' @param overwrite logical, overwrite existing files? It is an error to try to without
+#'   setting this argument to TRUE
+#' @return the input model
+save_model <- function(x, filename = "calanusthreshold_model.Rdata",
+                       overwrite = FALSE){
+  
+  if (file.exists(filename[1]) & overwrite == FALSE){
+    stop("File exists, please set overwrite to TRUE to replace existing")
   }
-  crs <- sf::st_crs(x)
-  g <- sf::st_as_text(sf::st_geometry(x))
-  y <- x |>
-     sf::st_drop_geometry() |>
-     dplyr::mutate(geometry = g) |>
-     readr::write_csv(filename)
-  if (!isTibble){
-    return(invisible(x))
-  } else {
-    return(invisible(y))
-  }
+  save(x, file = filename[1])
+  invisible(x)
+}
+
+#' Read a model from a file
+#' 
+#' @export
+#' @param filename character, the name of the file to read
+#' @return the model
+read_model <- function(filename = "calanusthreshold_model.Rdata"){
+  name <- load(filename[1])
+  get(name, inherits = FALSE)
 }
