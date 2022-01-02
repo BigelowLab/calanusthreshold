@@ -48,3 +48,57 @@ read_model <- function(filename = "calanusthreshold_model.Rdata"){
   name <- load(filename[1])
   get(name, inherits = FALSE)
 }
+
+#' Read configuration
+#' 
+#' @export
+#' @param filename the file to read
+#' @return a list of configuration values
+read_config <- function(filename){
+  yaml::read_yaml(filename)
+}
+
+
+#' Write configuration
+#' 
+#' @export
+#' @param x configuration (a list)
+#' @param filename the file to write
+#' @return a list of configuration values
+write_config <- function(x, filename = "config.yaml"){
+  yaml::write_yaml(x, filename)
+}
+
+
+
+#' Read one or more prediction files
+#' 
+#' If multiple files are provided then a "version" column is prepended
+#'
+#' @export
+#' @param filename charcater, one or more filenames
+#' @return tibble (possibly with a 'version' column)
+read_pred <- function(filename){
+  if(length(filename) > 1){
+    x <- readr::read_csv(filename, show_col_types = FALSE, id = 'version') |>
+      dplyr::relocate(version, .before = 1) |>
+      dplyr::mutate(version = gsub(".csv.gz", "", basename(version), fixed = TRUE))
+  } else {
+    x <- readr::read_csv(filename, show_col_types = FALSE)
+  }
+  
+  dplyr::mutate(x,
+                patch = factor(as.integer(patch), levels = c(0L, 1L)),
+                .pred_class = factor(as.integer(.pred_class), levels = c(0L, 1L)))
+}
+
+
+#' Write a prediction file
+#'
+#' @export
+#' @param x table of predictions
+#' @param filename character, the filename to write to
+#' @return the inout, \code{x}
+write_pred <- function(x, filename){
+  readr::write_csv(x, filename)
+}

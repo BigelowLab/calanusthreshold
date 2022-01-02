@@ -2,17 +2,17 @@
 % Please edit documentation in R/misc.R
 \name{prep_dataset}
 \alias{prep_dataset}
-\title{Prep a dataset by removing variables, remove incolplete cases,
- aggregating specified columns, and applying labeling to the aggregate column}
+\title{Prep a dataset by removing variables, remove incomplete cases,
+ aggregating specified columns, and applying threshold/labeling to the aggregated column}
 \usage{
 prep_dataset(
   x = read_dataset(),
-  drop_var = c("Calanus glacialis", "Calanus hyperboreus", "geometry", "longitude",
-    "latitude", "station", "year", "siconc", "sithick"),
-  drop_fun = dplyr::starts_with,
   complete_cases_only = TRUE,
   lump_var = "Calanus finmarchicus",
   lump_fun = dplyr::starts_with,
+  drop_var = c("geometry", "longitude", "latitude", "station", "year", "siconc",
+    "sithick", complement_species(lump_var)),
+  drop_fun = dplyr::starts_with,
   log_var = c("bathymetry", "chlor_a"),
   newname = "patch",
   threshold = 10000
@@ -21,15 +21,15 @@ prep_dataset(
 \arguments{
 \item{x}{tibble of input data}
 
-\item{drop_var}{character, the variables to deselect}
-
-\item{drop_fun}{function, such as \code{\link[dplyr]{starts_with}}}
-
 \item{complete_cases_only}{logical, if TRUE drop incomplete records (after deselection)}
 
 \item{lump_var}{character character, vector of variables to sum into a new column}
 
 \item{lump_fun}{function, such as \code{\link[dplyr]{starts_with}}}
+
+\item{drop_var}{character, the variables to deselect}
+
+\item{drop_fun}{function, such as \code{\link[dplyr]{starts_with}}}
 
 \item{log_var}{character, variables to log scale (base 10), match with \code{\link[dplyr]{any_of}}}
 
@@ -38,9 +38,9 @@ prep_dataset(
 \item{threshold}{numeric, the threshold(s) used to define patches}
 }
 \value{
-a tibble
+a tibble cleaned and transformed for downstream processing
 }
 \description{
-Prep a dataset by removing variables, remove incolplete cases,
- aggregating specified columns, and applying labeling to the aggregate column
+Prep a dataset by removing variables, remove incomplete cases,
+ aggregating specified columns, and applying threshold/labeling to the aggregated column
 }

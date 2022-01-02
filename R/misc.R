@@ -1,5 +1,5 @@
-#' Prep a dataset by removing variables, remove incolplete cases,
-#'  aggregating specified columns, and applying labeling to the aggregate column
+#' Prep a dataset by removing variables, remove incomplete cases,
+#'  aggregating specified columns, and applying threshold/labeling to the aggregated column
 #'  
 #' @export
 #' @param x tibble of input data
@@ -11,39 +11,39 @@
 #' @param log_var character, variables to log scale (base 10), match with \code{\link[dplyr]{any_of}}
 #' @param newname character the name of the new aggregated colum
 #' @param threshold numeric, the threshold(s) used to define patches
-#' @return a tibble
+#' @return a tibble cleaned and transformed for downstream processing
 prep_dataset <- function(x = read_dataset(),
-                         drop_var = c("Calanus glacialis", 
-                                       "Calanus hyperboreus",
-                                       "geometry",
-                                       "longitude",
-                                       "latitude",
-                                       "station",
-                                       "year",
-                                       "siconc",
-                                       "sithick"),
-                         drop_fun = dplyr::starts_with,
                          complete_cases_only = TRUE,
                          lump_var = "Calanus finmarchicus",
                          lump_fun = dplyr::starts_with,
+                         drop_var = c("geometry",
+                                      "longitude",
+                                      "latitude",
+                                      "station",
+                                      "year",
+                                      "siconc",
+                                      "sithick",
+                                      complement_species(lump_var)),
+                         drop_fun = dplyr::starts_with,
                          log_var = c("bathymetry", "chlor_a"),
                          newname = "patch",
                          threshold = 10000){
-
+  
   if (length(drop_var) > 0) x <- dplyr::select(x, -drop_fun(drop_var)) 
   
   if(complete_cases_only) x <- na.omit(x)
 
-  
+  # log scale as requested
   if (length(log_var) > 0) {
     x <- dplyr::mutate(x, dplyr::across(dplyr::any_of(log_var),  ~ log10(abs(.x) + 0.00001) ))
   }
+  
+  # aggregate the species
   x <- calanusthreshold::lump_vars(x, 
                                   vars = lump_var,
                                   selector = lump_fun,
                                   newname = newname)
-
-    
+  # now apply threshold
   x[[newname]] <- calanusthreshold::as_patch(x[[newname]], threshold) 
   x
 }
@@ -101,11 +101,10 @@ lump_vars <- function(x = read_dataset(),
 #' @export
 #' @param x a vector of abundances
 #' @param threshold numeric boundaries defining levels of patchiness from low to high.
-#'  If zero is not the first boundary it is added so that the first patch index
-#'  is always 0 (implying no patch of meaningful density)
+#'   Values in \code{x} below the lowest threshold are considered "no-patch"
 #' @param form character, one of 'index' of 'factor' to control the output type
 #'   in either case NAs are propagated.
-#' @return numeric indices into threshold, possibly as factors
+#' @return numeric indices into threshold, possibly as factors.  Zero means no patch.
 as_patch <- function(x, 
                      threshold = list(10000, c(2500, 5000, 7500, 10000))[[1]],
                      form = c("index", "factor")[2]){

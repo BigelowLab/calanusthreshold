@@ -14,14 +14,13 @@ as_patch(
 \item{x}{a vector of abundances}
 
 \item{threshold}{numeric boundaries defining levels of patchiness from low to high.
-If zero is not the first boundary it is added so that the first patch index
-is always 0 (implying no patch of meaningful density)}
+Values in \code{x} below the lowest threshold are considered "no-patch"}
 
 \item{form}{character, one of 'index' of 'factor' to control the output type
 in either case NAs are propagated.}
 }
 \value{
-numeric indices into threshold, possibly as factors
+numeric indices into threshold, possibly as factors.  Zero means no patch.
 }
 \description{
 Convert abundance to patch density
