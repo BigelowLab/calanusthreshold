@@ -12,8 +12,6 @@ Provides R tools for producing threshold prey models for Calanus.
 ## Requirements
 
  + [R v4.1+](https://www.r-project.org/)
- 
- + [biomod2](https://CRAN.R-project.org/package=biomod2)
 
  + [rlang](https://CRAN.R-project.org/package=rlang)
  
@@ -21,7 +19,14 @@ Provides R tools for producing threshold prey models for Calanus.
  
  + [readr](https://CRAN.R-project.org/package=readr)
  
- + [sf](https://CRAN.R-project.org/package=sf)
+ + [recipes](https://CRAN.R-project.org/package=recipes)
+ 
+ + [rsample](https://CRAN.R-project.org/package=rsample)
+ 
+ + [parsnip](https://CRAN.R-project.org/package=parsnip)
+ 
+ + [yardstick](https://CRAN.R-project.org/package=yardstick)
+ 
 
 ## Installation
 
@@ -29,18 +34,151 @@ Provides R tools for producing threshold prey models for Calanus.
 remotes::install_github("BigelowLab/calanusthreshold")
 ```
 
-## Read Input Data
+**Convention**
+
+> We prepend the package namespace to function **not** exposed by the `calanusthreshold` package.  Bare function names (no package prepended) are used for base R functions and for `calanusthreshold` functions.
+
+## The input data - observations
 
 We provide an anonymized example dataset.
 
 ```{r read_example, message = FALSE}
-library(calanusthreshold)
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(ggplot2)
+  library(calanusthreshold)
+  library(tidymodels)
+})
 x <- read_dataset()
-x
+dplyr::glimpse(x)
 ```
 
-But if you have your own dataset, just provide the filename and path.
+If you have your own dataset just provide the filename and path, but be sure to see `?read_dataset` dcoumentation.  Note that the variables with species names are abundance measurements by life stage.
 
 ```
 x <- read_dataset("/path/to/input/data.csv")
+```
+
+We are modeling patches of the species which we define by excess abundance over user specified thresholds. For this example we define just one  threshold...
+
+```{r}
+THRESHOLD <- 10000
+```
+
+For the purpose of illustration, we lump all stages of a given species together. 
+
+```{r}
+Species <- calanusthreshold::known_species()
+abund <- lapply(Species,
+                        function(s) {
+                          dplyr::tibble(species = s,
+                            abund = calanusthreshold::lump_vars(x, vars = s,
+                                                      selector = dplyr::starts_with) |>
+                                    dplyr::pull("lumped"))
+                        })|>
+                  dplyr::bind_rows() |>
+  dplyr::mutate(patch = factor(findInterval(abund, THRESHOLD),
+                               levels = seq(from = 0, to = length(THRESHOLD)),
+                               labels = c("sparse", THRESHOLD))) |>
+  dplyr::group_by(species) |>
+  dplyr::glimpse()
+```
+
+We can plot the raw abundance by species group, note that we drop records where abundance is less than 0 for the sake of clarity. Note that *C glacials* generally has low patchiness when the threshold is held high.
+
+```{r}
+ggplot2::ggplot(abund %>% dplyr::filter(abund > 0), ggplot2::aes(species, abund)) + 
+  ggplot2::geom_violin() + 
+  ggplot2::scale_y_log10() +
+  ggplot2::labs(title = "Filtered input raw abundances (>0) by species",
+       x = "Species", y = "Abundance (log10)") +
+  ggplot2::geom_hline(yintercept = THRESHOLD, 
+             linetype = 'dashed',
+             color = 'grey')
+```
+
+## The model - random forest
+
+The [tidymodels](https://www.tmwr.org/) attempts to provide a uniform programmatic interface for myriad model functions/packages in R, including [random forest](https://en.wikipedia.org/wiki/Random_forest) models.  The idea is to provide consistent argument interfaces, "engine" selection, and uniform model assessment metrics. 
+
+We are going to model just `Calanus Finmarchicus`.  First we prep the dataset - dropping non-essential variables (columns), log=scaling some variables and by aggregating (lumping) the various life-stages. The `prep_dataset()` function includes a 'patch' label indicating that the abundance for that observation exceeded the threshold. We then split the data into a user specified proportion of training and testing groups.
+
+```{r}
+x_split <- prep_dataset(x,
+                        lump_var = "Calanus finmarchicus",
+                        threshold = THRESHOLD) |>
+ dplyr::relocate(patch, .before = 1) |>
+ rsample::initial_split(prop = 0.6)
+x_split
+```
+
+Next we build up a series of 'recipe' steps that prepare the data. The `prep` steps implements all of the other steps, including removal highly correlated variable (like roughness).
+
+```{r}
+x_recipe <- rsample::training(x_split) |>
+    recipes::recipe(patch ~.) |>
+    recipes::step_corr(recipes::all_predictors()) |>
+    recipes::step_center(recipes::all_predictors(), -recipes::all_outcomes()) |>
+    recipes::step_scale(recipes::all_predictors(), -recipes::all_outcomes()) |>
+    recipes::prep()
+x_recipe
+```
+
+Now we can 'bake' the training and testing datasets.
+
+```{r}
+x_testing <- x_recipe |>
+    recipes::bake(rsample::testing(x_split)) 
+  
+  x_training <- x_recipe |>
+    recipes::bake(rsample::training(x_split))
+```
+
+Now we build and fit a model.  Note the we are accepting the defaults arguments for the [ranger::ranger()](https://www.rdocumentation.org/packages/ranger/versions/0.13.1/topics/ranger) function.
+
+```{r}
+x_model <- parsnip::rand_forest(mode = "classification") |>
+      parsnip::set_engine("ranger") |>
+      parsnip::fit(patch ~ ., data = x_training)
+x_model
+```
+
+##  The prediction
+
+We can now predict the outcome if we pass in another dataset, in the case the testing data we reserved as 40% of the original.  We'll bind the prediction to the testing data and reorganize for clarity. In the output `patch` is out original (aka 'Truth') while `.pred_class` is the predicted class (aka 'Predicted')
+
+```{r}
+x_pred <-  predict(x_model, x_testing) |>
+    dplyr::bind_cols(x_testing) |>
+    dplyr::relocate(patch, .before = 1)
+dplyr::glimpse(x_pred)
+```
+
+We can compute and examine a confusion matrix.
+
+```{r}
+x_cm <- yardstick::conf_mat(x_pred, patch, .pred_class)
+x_cm
+```
+
+Or present graphically...
+
+```{r}
+heat_map(x_cm, title = "Calanus finmarchicus")
+```
+
+Similar the the ease of computing a predicted class value, we can also produce predicted class probabilities. Here we 
+
+```{r}
+x_prob <-  predict(x_model, x_testing, type = "prob") |>
+  dplyr::bind_cols(x_testing) |>
+  dplyr::relocate(patch, .before = 1) |>
+  dplyr::glimpse()
+```
+
+From the probabilities for each class we can compute ACU on the ROC.
+
+```{r}
+x_auc <- yardstick::roc_auc(x_prob, patch, .pred_1, event_level = 'second') |>
+  dplyr::glimpse()
 ```

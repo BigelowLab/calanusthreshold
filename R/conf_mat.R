@@ -42,9 +42,9 @@ heat_map <- function(x,
     gg <- autoplot(x, type = 'heatmap')
     
     if (annotate){
-      st <- summary(x)
+      st <- summary(x, event_level = "second")
       s <- st$.estimate |>
-        rlang::set_names(s$.metric)
+        rlang::set_names(st$.metric)
       ann <- sprintf("acc: %0.3f  sens: %0.3f  spec: %0.3f",
                      s[["accuracy"]], s[['sens']], s[['spec']])
     } else {
@@ -61,7 +61,7 @@ heat_map <- function(x,
     if (proportions) gg <- gg +  
       ggplot2::geom_text(data = df, 
                          ggplot2::aes(label = sprintf("%1.0f%%", .data$Frac)), 
-                                      vjust = 2, size=3)
+                                      vjust = 2, size = 3)
   }
   return(gg)
 }
