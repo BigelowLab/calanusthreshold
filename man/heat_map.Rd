@@ -2,9 +2,9 @@
 % Please edit documentation in R/conf_mat.R
 \name{heat_map}
 \alias{heat_map}
-\title{Plot a confusion matrix or set of matrices}
+\title{Create graphics for one or more confusion matrices}
 \usage{
-heat_map(x, title = NULL, title_col = 1, proportions = TRUE)
+heat_map(x, title = NULL, title_col = 1, proportions = TRUE, annotate = TRUE)
 }
 \arguments{
 \item{x}{\code{\link[yardstick]{conf_mat}} confusion matrix OR a tibble
@@ -15,13 +15,15 @@ with a conf_mat list column}
 \item{title_col}{character or integer, the column from which to draw the title when
 providing a data frame of confusion matrices}
 
-\item{proportions}{logical if TRUE annotate with percentages}
+\item{proportions}{logical if TRUE annotate with proportions (as percentages)}
+
+\item{annotate}{logical if TRUE annotate with a caption of stats (acc, sens, spec)}
 }
 \value{
 ggplot object ala \code{\link[yardstick]{conf_mat}}
 }
 \description{
-Plot a confusion matrix or set of matrices
+Create graphics for one or more confusion matrices
 }
 \examples{
 \dontrun{

@@ -1,7 +1,4 @@
-
-
-
-#' Plot a confusion matrix or set of matrices
+#' Create graphics for one or more confusion matrices
 #' 
 #' @export
 #' @param x \code{\link[yardstick]{conf_mat}} confusion matrix OR a tibble
@@ -9,7 +6,8 @@
 #' @param title character or NULL, for the plot title
 #' @param title_col character or integer, the column from which to draw the title when
 #'   providing a data frame of confusion matrices
-#' @param proportions logical if TRUE annotate with percentages
+#' @param proportions logical if TRUE annotate with proportions (as percentages)
+#' @param annotate logical if TRUE annotate with a caption of stats (acc, sens, spec)
 #' @return ggplot object ala \code{\link[yardstick]{conf_mat}}
 #' @examples
 #' \dontrun{
@@ -25,13 +23,15 @@
 heat_map <- function(x, 
                      title = NULL,
                      title_col = 1,
-                     proportions = TRUE) {
+                     proportions = TRUE,
+                     annotate = TRUE) {
   
   if (inherits(x, "data.frame") && ("conf_mat" %in% colnames(x))){
     gg <- lapply(seq_len(nrow(x)),
                  function(i){
-                   heat_map(x$conf_mat[[i]],,
+                   heat_map(x$conf_mat[[i]],
                             title = x[[title_col]][i],
+                            annotate = annotate,
                             proportions = proportions)
                  }) |>
       rlang::set_names(x[[title_col]])
@@ -40,9 +40,24 @@ heat_map <- function(x,
       dplyr::mutate(Frac = .data$Freq/sum(.data$Freq) * 100)
     
     gg <- autoplot(x, type = 'heatmap')
-    # Prediction Truth  Freq
-    if (!is.null(title)) gg <- gg +  ggplot2::labs(title = title)
     
+    if (annotate){
+      st <- summary(x)
+      s <- st$.estimate |>
+        rlang::set_names(s$.metric)
+      ann <- sprintf("acc: %0.3f  sens: %0.3f  spec: %0.3f",
+                     s[["accuracy"]], s[['sens']], s[['spec']])
+    } else {
+      ann <- ggplot2::waiver()
+    }
+    
+    if (is.null(title)) title <- ggplot2::waiver()
+    
+    gg <- gg + 
+      ggplot2::labs( title = title, caption = ann) +
+      theme(plot.title = element_text(hjust = 0.5),
+            plot.caption = element_text(hjust = 0.5))
+  
     if (proportions) gg <- gg +  
       ggplot2::geom_text(data = df, 
                          ggplot2::aes(label = sprintf("%1.0f%%", .data$Frac)), 
