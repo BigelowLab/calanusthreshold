@@ -7,9 +7,10 @@
 project_path(..., root = get_project_path())
 }
 \arguments{
-\item{root}{character, the root project path}
+\item{...}{character, file path segments for file/directories relative to \code{root}
+See \code{\link[base]{file.path}}}
 
-\item{filename}{character, the name of the filename with the project path}
+\item{root}{character, the root project path}
 }
 \value{
 a fully qualified path

@@ -7,7 +7,9 @@
 complement_species(species = "Calanus finmarchicus", known = known_species())
 }
 \arguments{
-\item{species}{charcater, one or more species}
+\item{species}{character, one or more species}
+
+\item{known}{character, vector of known species}
 }
 \value{
 character vector, possibly empty, of the other species not identifed

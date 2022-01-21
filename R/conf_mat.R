@@ -39,7 +39,7 @@ heat_map <- function(x,
     df <- as.data.frame.table(x$table) |>
       dplyr::mutate(Frac = .data$Freq/sum(.data$Freq) * 100)
     
-    gg <- autoplot(x, type = 'heatmap')
+    gg <- ggplot2::autoplot(x, type = 'heatmap')
     
     if (annotate){
       st <- summary(x, event_level = "second")
@@ -55,8 +55,8 @@ heat_map <- function(x,
     
     gg <- gg + 
       ggplot2::labs( title = title, caption = ann) +
-      theme(plot.title = element_text(hjust = 0.5),
-            plot.caption = element_text(hjust = 0.5))
+      ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
+            plot.caption = ggplot2::element_text(hjust = 0.5))
   
     if (proportions) gg <- gg +  
       ggplot2::geom_text(data = df, 

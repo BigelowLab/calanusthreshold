@@ -32,7 +32,8 @@ known_species <- function(stage = FALSE){
 #' Given a set of species, determine the other species
 #' 
 #' @export
-#' @param species charcater, one or more species
+#' @param species character, one or more species
+#' @param known character, vector of known species
 #' @return character vector, possibly empty, of the other species not identifed
 complement_species <- function(species = "Calanus finmarchicus",
                                known = known_species()){
@@ -83,7 +84,8 @@ get_project_path <- function(filename = "project_path.txt", ...){
 #' Retrieve project data path
 #' 
 #' @export
-#' @param filename character, the name of the filename with the project path
+#' @param ... character, file path segments for file/directories relative to \code{root}
+#'   See \code{\link[base]{file.path}} 
 #' @param root character, the root project path 
 #' @return a fully qualified path
 project_path <- function(..., root = get_project_path()){

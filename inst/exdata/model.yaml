@@ -1,0 +1,6 @@
+version: cf.ranger.01000.050.03
+species: Calanus finmarchicus
+engine: ranger
+threshold: 1000
+trees: 50
+mtry: 3

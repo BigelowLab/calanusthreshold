@@ -1,0 +1,44 @@
+---
+title: "Raster inputs"
+output: html_notebook
+---
+
+Read in a model (the function defaults to the example model)
+
+```{r}
+suppressPackageStartupMessages(
+  {
+    library(tidymodels)
+    library(dplyr)
+    library(calanusthreshold)
+  })
+
+log_var <- c("bathymetry", "chlor_a")
+
+model <- calanusthreshold::read_model()
+```
+
+
+Read in a raster, but transform to a tibble.
+
+```{r}
+X <- calanusthreshold::read_raster(form = 'tibble')
+xy <- X |>
+  dplyr::select(x, y)
+x <- X |>
+  dplyr::select(-x, -y) |>
+  dplyr:::mutate(dplyr::across(dplyr::any_of(log_var),  ~ log10(abs(.x) + 0.00001) ),
+                 month = 1)
+ix <- complete.cases(x)
+```
+
+
+```{r}
+model_vars <- calanusthreshold::model_predvars(model)
+x <- x |>
+  dplyr::select(dplyr::all_of(model_vars))
+```
+
+```{r}
+pred <- predict(model, x)
+```

@@ -4,7 +4,9 @@
 \alias{read_config}
 \title{Read configuration}
 \usage{
-read_config(filename)
+read_config(
+  filename = system.file("exdata/model.yaml", package = "calanusthreshold")
+)
 }
 \arguments{
 \item{filename}{the file to read}

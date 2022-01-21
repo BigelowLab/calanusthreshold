@@ -4,7 +4,9 @@
 \alias{read_model}
 \title{Read a model from a file}
 \usage{
-read_model(filename = "calanusthreshold_model.Rdata")
+read_model(
+  filename = system.file("exdata/model.Rdata", package = "calanusthreshold")
+)
 }
 \arguments{
 \item{filename}{character, the name of the file to read}

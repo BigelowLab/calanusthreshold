@@ -4,7 +4,9 @@
 \alias{read_pred}
 \title{Read one or more prediction files}
 \usage{
-read_pred(filename)
+read_pred(
+  filename = system.file("exdata/prediction.csv.gz", package = "calanusthreshold")
+)
 }
 \arguments{
 \item{filename}{charcater, one or more filenames}

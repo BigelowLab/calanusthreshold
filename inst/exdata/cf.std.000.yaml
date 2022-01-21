@@ -1,0 +1,21 @@
+version: cf.std.000
+species: Calanus finmarchicus
+predictors:
+  - month
+  - bathymetry
+  - slope
+  - aspect
+  - proximity
+  - mlotst
+  - thetao
+  - bottomT
+  - vo
+  - uo
+  - so
+  - zos
+engine: ranger
+threshold: 10000
+trees: 200
+mtry: 3
+seed: 123
+prop: 0.6
