@@ -54,11 +54,15 @@ model_by_version <- function(cfg = read_config(system.file("exdata/cf.std.000.ya
     cfg = read_config(system.file("exdata/cf.std.000.yaml",
                                   package = "calanusthreshold"))
     x = read_dataset(project_path("orig", "GSTS_Calanus_consolidated.csv"))
-    save_model = TRUE
-    save_pred = TRUE
+    save_model = FALSE
+    save_pred = FALSE
+    save_summary = FALSE
     path = "/Users/ben/Dropbox/code/projects/calanusthreshold/versions/categorical/cf"
-    verbose = TRUE
+    verbose = FALSE
   }
+  
+  # convert a factor to numeric
+  as_numeric <- function(f) as.numeric(as.character(f))
   
   #' This gets returned when there is an issue
   dummy_return <- function(version,
@@ -86,11 +90,16 @@ model_by_version <- function(cfg = read_config(system.file("exdata/cf.std.000.ya
   x_split <- rsample::initial_split(x, prop = cfg$prop)
   set.seed(NULL)
   
-  x_training_n <- dplyr::count(rsample::training(x_split), dplyr::all_of("patch"))
-  if (nrow(x_training_n) < 2){
+  x_training_n <- rsample::training(x_split) |> 
+    dplyr::pull(dplyr::all_of("patch")) |>
+    as_numeric() |>
+    table()
+  
+  if (length(x_training_n) < 2){
     # hack!
     # things fall apart when a class is absent in the training set 
-    return(dummy_return(version = cfg$version))
+    if (verbose) warning("Training dataset has only one class present. Returning NULL.")
+    return(NULL)
   }
   
   x_recipe <- rsample::training(x_split) |>

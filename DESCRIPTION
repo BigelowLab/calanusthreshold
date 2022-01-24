@@ -18,7 +18,8 @@ Imports:
     sf,
     stars,
     yaml,
-    ggplot2
+    ggplot2,
+    patchwork
 URL: https://github.com/BigelowLab/calanusthreshold
 Maintainer: Ben Tupper <btupper@bigelow.org>
 Author: Camille Ross [aut, cre], Nick Record [aut], Ben Tupper [aut]

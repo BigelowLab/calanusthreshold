@@ -14,8 +14,8 @@ predictors:
   - so
   - zos
 engine: ranger
-threshold: 10000
+threshold: 5000
 trees: 200
 mtry: 3
-seed: 123
+seed: ~
 prop: 0.6

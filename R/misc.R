@@ -115,3 +115,32 @@ as_patch <- function(x,
   }
   ix
 }
+
+#' Plot prediction rasters (patch and probability)
+#' 
+#' @export
+#' @param x \code{stars} object with two attributes
+#' @param zlim 2 element vector of limits for probability, or 
+#'   "fit" to scale to the range of prob values 
+#' @return 2 element list of ggplot2 objects ("patch", "prob")
+plot_prediction <- function(x, zlim = list("fit", c(0,1))[[1]]){
+  
+  patch <- ggplot2::ggplot() +
+    stars::geom_stars(data = x['patch'] |>
+                        dplyr::mutate(patch = factor(.data$patch, levels = c(1, 0, NA)))) + 
+    ggplot2::scale_fill_manual(values=c("1"="#D55E00", "0"="#559E7380", "NA"="#99999980")) +
+    ggplot2::coord_equal() +
+    ggplot2::labs(x = "Lon", y = "Lat")
+  
+  if (inherits(zlim, 'character')){
+    zlim <- c(0, max(x$prob))
+  }
+    
+  prob <- ggplot2::ggplot() + 
+    stars::geom_stars(data = x['prob']) + 
+    ggplot2::scale_fill_continuous(low="white",high="orange", limits=zlim) +
+    ggplot2::coord_equal() +
+    ggplot2::labs(x = "Lon", y = "Lat")
+  
+  list(patch = patch, prob = prob)
+}

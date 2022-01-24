@@ -1,0 +1,44 @@
+---
+title: "A flexible workflow"
+output: html_notebook
+---
+
+```{r}
+suppressPackageStartupMessages({
+  library(sf)
+  library(stars)
+  library(dplyr)
+  library(patchwork)
+  library(calanusthreshold)
+})
+```
+
+A configuration file (yaml format) specifies not only modeling arguments, but also allows user-specifed covariates.
+
+```{r}
+cfg <- calanusthreshold::read_config(system.file("exdata/cf.std.000.yaml", 
+                                                 package = 'calanusthreshold'))
+str(cfg)
+```
+ 
+Note that `seed` is settable to allow for reproducible results across platforms.  Setting `seed` to `NULL` (*ala* `seed: ~` in the yaml file) will essentially skip seed selection.
+
+We can now create model using a tabular dataset of covariates.
+
+```{r}
+x <- calanusthreshold::read_dataset("~/Dropbox/code/projects/calanusthreshold/orig/GSTS_Calanus_consolidated.csv")
+model <- calanusthreshold::model_by_version(cfg, x)
+model
+```
+
+```{r}
+predictors <- calanusthreshold::read_raster()
+prediction <- calanusthreshold::predict_calanus(model, predictors, month = 1)
+prediction
+```
+
+```{r}
+gg <- calanusthreshold::plot_prediction(prediction, zlim = 'fit')
+(gg[["patch"]] + gg[["prob"]]) +
+  patchwork::plot_annotation(title = "Calanus finmarchicus, January 2022")
+```
