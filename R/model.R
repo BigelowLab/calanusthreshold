@@ -119,7 +119,7 @@ model_by_version <- function(cfg = read_config(system.file("exdata/cf.std.000.ya
   x_model <- parsnip::rand_forest(trees = cfg$trees, 
                                   mode = "classification",
                                   mtry = cfg$mtry) |>
-      parsnip::set_engine(cfg$engine) |>
+      parsnip::set_engine(cfg$engine, importance = "impurity") |>
       parsnip::fit(patch ~ ., data = x_training)
     
   if (save_model){

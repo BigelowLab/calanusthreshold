@@ -13,7 +13,7 @@ suppressPackageStartupMessages({
 })
 ```
 
-A configuration file (yaml format) specifies not only modeling arguments, but also allows user-specifed covariates.
+A configuration file (yaml format) specifies not only modeling arguments, but also allows user-specified covariates.
 
 ```{r}
 cfg <- calanusthreshold::read_config(system.file("exdata/cf.std.000.yaml", 
@@ -21,7 +21,7 @@ cfg <- calanusthreshold::read_config(system.file("exdata/cf.std.000.yaml",
 str(cfg)
 ```
  
-Note that `seed` is settable to allow for reproducible results across platforms.  Setting `seed` to `NULL` (*ala* `seed: ~` in the yaml file) will essentially skip seed selection.
+Note that `seed` is settable to allow for reproducible results across runs.  Setting `seed` to `NULL` (*ala* `seed: ~` in the yaml file) will essentially skip seed selection.  Note that we always split the dataset into training and testing subgroups so that model metrics can be produced, see `?calanusthreshold::model_by_version` for more details.
 
 We can now create model using a tabular dataset of covariates.
 
@@ -31,11 +31,21 @@ model <- calanusthreshold::model_by_version(cfg, x)
 model
 ```
 
+Read in the example raster stack of predictor layers (the band layers have been split into attributes) and add a month attribute.  Note that the predictor dataset contains more variables than specified in the config (and the model). The `calanusthreshold::predict_calanus()` function will select the variables needed.  While it is OK to provide to many variables in the predictor dataset, it is an error to not provide the minimum set required. In our example, the model was built without `usi`, `vsi` and `chlor_a`.
+
 ```{r}
-predictors <- calanusthreshold::read_raster()
-prediction <- calanusthreshold::predict_calanus(model, predictors, month = 1)
+predictors <- calanusthreshold::read_raster() |>
+  dplyr::mutate(month = 1)
+plot(merge(predictors), key.pos = NULL)
+```
+
+Now we make the prediction.
+```{r}
+prediction <- calanusthreshold::predict_calanus(model, predictors)
 prediction
 ```
+
+And show it.
 
 ```{r}
 gg <- calanusthreshold::plot_prediction(prediction, zlim = 'fit')

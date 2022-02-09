@@ -35,7 +35,9 @@ predict_calanus <- function(model,
 #' @param predictors a table (data.frame or tibble) or raster (terra or stars)
 #' @param include_prob logical, if TRUE include probabilities of occurrence
 #' @param ... arguments passed to \code{predict}
-#' @return tibble of predictions, possibly with prob
+#' @return tibble of predictions, possibly with prob.  In the event that the
+#'   predictors have no complete cases (at least one NA in each row) then 
+#'   the prediction returned is NA everywhere with a warning
 predict_table <- function(model, predictors, include_prob = TRUE, ...){
   
   as_numeric <- function(f) as.numeric(as.character(f))
@@ -50,17 +52,21 @@ predict_table <- function(model, predictors, include_prob = TRUE, ...){
   event_var <- vm$predicted
   ix <- complete.cases(predictors)
   r <- dplyr::tibble(!!event_var := rep(NA_real_, nrow(predictors)))
+
   if (any(ix)){  # be careful!  What if they are all missing?
     event <- stats::predict(model, predictors |> dplyr::filter(ix))
     r[[event_var]][which(ix)] <-  as_numeric(dplyr::pull(event, .data$.pred_class))
-  } 
+  } else {
+    # no complete cases?  Return NA
+    warning("no complete cases in predicitor dataset - predictions are all NA")
+  }
   
   if (include_prob){
     r <- dplyr::mutate(r, prob = rep(NA_real_, nrow(predictors)))
     if (any(ix)){
       prob <- stats::predict(model, predictors |> dplyr::filter(ix), type = 'prob')
       r$prob[which(ix)] <- dplyr::pull(prob, .data$.pred_1)
-    } 
+    }
   }
   r
 }
