@@ -16,7 +16,9 @@ predict_table(model, predictors, include_prob = TRUE, ...)
 \item{...}{arguments passed to \code{predict}}
 }
 \value{
-tibble of predictions, possibly with prob
+tibble of predictions, possibly with prob.  In the event that the
+  predictors have no complete cases (at least one NA in each row) then 
+  the prediction returned is NA everywhere with a warning
 }
 \description{
 Predict using tibble class object
